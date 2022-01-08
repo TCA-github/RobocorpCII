@@ -11,11 +11,14 @@ Library           RPA.PDF
 Library           RPA.Archive
 Library           RPA.Dialogs
 Library           RPA.Robocorp.Vault
+Library           OperatingSystem
 
 *** Tasks ***
 Order robots from RobotSpareBin Industries Inc
     ${orderurl}=    Get url from vault
     Open the robot order website    ${orderurl}
+    ${filelocation}=    Ask user csv url
+    Download the file    ${filelocation}
     ${orders}=    Get orders
     FOR    ${row}    IN    @{orders}
         Close the annoying modal
@@ -28,15 +31,12 @@ Order robots from RobotSpareBin Industries Inc
         Go to order another robot
     END
     Create a ZIP file of the receipts
+    [Teardown]    Remove pdf and pnf files
 
 *** Keywords ***
 Open the robot order website
     [Arguments]    ${site}
     Open Available Browser    ${site}
-#Ask user url
-#    Add text input    address    label=Give url
-#    ${response}=    Run dialog
-#    [Return]    ${url}
 
 Get url from vault
     ${secret}=    Get Secret    link
@@ -45,11 +45,18 @@ Get url from vault
 Close the annoying modal
     Click Button    Yep
 
-Download the csvfile
-    Download    https://robotsparebinindustries.com/orders.csv    overwrite=True
+Ask user csv url
+    Add heading    File address query
+    Add text input    csvaddress    label=Give csv url
+    ${response}=    Run dialog
+    [Return]    ${response.csvaddress}
+
+Download the file
+    [Arguments]    ${address}
+    Download    ${address}    overwrite=True
+ #    Download    https://robotsparebinindustries.com/orders.csv    overwrite=True
 
 Get orders
-    Download the csvfile
     ${orders} =    Read table from CSV    orders.csv
     [Return]    ${orders}
 
@@ -88,3 +95,7 @@ Go to order another robot
 
 Create a ZIP file of the receipts
     Archive Folder With ZIP    ${CURDIR}${/}    ${CURDIR}${/}receiptsarchive.zip    recursive=True    include=*.pdf
+
+Remove pdf and pnf files
+    Remove Files    ${OUTPUT_DIR}${/}*.pdf
+    Remove Files    ${OUTPUT_DIR}${/}*.png
